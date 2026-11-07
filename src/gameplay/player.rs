@@ -1,13 +1,15 @@
 use crate::GameState;
-use crate::gameplay::actions::Actions;
-use crate::gameplay::collision::CircleCollider;
-use crate::gameplay::game_object::GameObject;
-use crate::loading::TextureAssets;
-use bevy::prelude::*;
+// use crate::gameplay::actions::Actions;
+// use crate::loading::TextureAssets;
+use avian3d::prelude::*;
+use bevy::{
+    prelude::*,
+    color::palettes::*,
+};
 
 pub struct PlayerPlugin;
 
-#[derive(Component)]
+#[derive(Component, Default, Clone)]
 pub struct Player;
 
 /// This plugin handles player related stuff like movement
@@ -16,41 +18,26 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             OnEnter(GameState::Playing),
-            (spawn_player, spawn_game_camera),
-        )
-        .add_systems(Update, move_player.run_if(in_state(GameState::Playing)));
+            (
+                spawn_player,
+            ),
+        );
+        // .add_systems(
+        //     Update,
+        //     move_player.run_if(in_state(GameState::Playing))
+        // );
     }
 }
 
-fn spawn_game_camera(mut commands: Commands) {
-    commands.spawn((Camera2d, Msaa::Off, GameObject));
-}
-
-fn spawn_player(mut commands: Commands, textures: Res<TextureAssets>) {
-    commands.spawn((
-        Sprite::from_image(textures.bevy.clone()),
-        Transform::from_translation(Vec3::new(0., 0., 2.)),
-        Player,
-        GameObject,
-        CircleCollider { radius: 128. },
-    ));
-}
-
-fn move_player(
-    time: Res<Time>,
-    actions: Res<Actions>,
-    mut player_query: Query<&mut Transform, With<Player>>,
-) {
-    let Some(movement) = actions.player_movement else {
-        return;
-    };
-    let speed = 150.;
-    let movement = Vec3::new(
-        movement.x * speed * time.delta_secs(),
-        movement.y * speed * time.delta_secs(),
-        0.,
-    );
-    for mut player_transform in &mut player_query {
-        player_transform.translation += movement;
-    }
+pub fn spawn_player(mut commands: Commands) {
+    commands.spawn_scene(bsn! {
+        RigidBody::Dynamic
+        Collider::cuboid(1.0, 1.0, 1.0)
+        Mesh3d(asset_value(Cuboid::new(1., 1., 1.)))
+        MeshMaterial3d<StandardMaterial>(asset_value(Color::from(tailwind::EMERALD_600)))
+        Player
+        Transform::from_xyz(0.0, 4.0, 0.0)
+        AngularVelocity(Vec3::new(2.5, 3.5, 1.5))
+        DespawnOnExit<GameState>(GameState::Playing)
+    });
 }
